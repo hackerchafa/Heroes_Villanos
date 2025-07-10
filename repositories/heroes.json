@@ -1,0 +1,12 @@
+[
+  {"id": 1, "nombre": "Superman", "alias": "El Hombre de Acero", "nivel": 100, "ciudad": "Metrópolis", "team": "Liga de la Justicia"},
+  {"id": 2, "nombre": "Batman", "alias": "El Caballero Oscuro", "nivel": 95, "ciudad": "Gotham", "team": "Liga de la Justicia"},
+  {"id": 3, "nombre": "Wonder Woman", "alias": "Diana Prince", "nivel": 98, "ciudad": "Themyscira", "team": "Liga de la Justicia"},
+  {"id": 4, "nombre": "Flash", "alias": "Barry Allen", "nivel": 90, "ciudad": "Central City", "team": "Liga de la Justicia"},
+  {"id": 5, "nombre": "Green Lantern", "alias": "Hal Jordan", "nivel": 88, "ciudad": "Coast City", "team": "Liga de la Justicia"},
+  {"id": 6, "nombre": "Aquaman", "alias": "Arthur Curry", "nivel": 85, "ciudad": "Atlantis", "team": "Liga de la Justicia"},
+  {"id": 7, "nombre": "Cyborg", "alias": "Victor Stone", "nivel": 80, "ciudad": "Detroit", "team": "Liga de la Justicia"},
+  {"id": 8, "nombre": "Martian Manhunter", "alias": "J'onn J'onzz", "nivel": 92, "ciudad": "Marte", "team": "Liga de la Justicia"},
+  {"id": 9, "nombre": "Green Arrow", "alias": "Oliver Queen", "nivel": 78, "ciudad": "Star City", "team": "Liga de la Justicia"},
+  {"id": 10, "nombre": "Hawkgirl", "alias": "Shayera Hol", "nivel": 77, "ciudad": "Thanagar", "team": "Liga de la Justicia"}
+] 

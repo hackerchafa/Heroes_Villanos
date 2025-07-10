@@ -1,0 +1,12 @@
+[
+  {"id": 1, "nombre": "Joker", "alias": "El Payaso del Crimen", "nivel": 90, "ciudad": "Gotham", "team": "Independiente"},
+  {"id": 2, "nombre": "Lex Luthor", "alias": "El Genio del Mal", "nivel": 95, "ciudad": "Metrópolis", "team": "Independiente"},
+  {"id": 3, "nombre": "Cheetah", "alias": "Barbara Ann Minerva", "nivel": 85, "ciudad": "Themyscira", "team": "Independiente"},
+  {"id": 4, "nombre": "Reverse Flash", "alias": "Eobard Thawne", "nivel": 92, "ciudad": "Central City", "team": "Independiente"},
+  {"id": 5, "nombre": "Sinestro", "alias": "Thaal Sinestro", "nivel": 88, "ciudad": "Korugar", "team": "Sinestro Corps"},
+  {"id": 6, "nombre": "Black Manta", "alias": "David Hyde", "nivel": 80, "ciudad": "Atlantis", "team": "Independiente"},
+  {"id": 7, "nombre": "Deathstroke", "alias": "Slade Wilson", "nivel": 87, "ciudad": "Unknown", "team": "Independiente"},
+  {"id": 8, "nombre": "Darkseid", "alias": "Uxas", "nivel": 100, "ciudad": "Apokolips", "team": "Independiente"},
+  {"id": 9, "nombre": "Ra's al Ghul", "alias": "El Demonio", "nivel": 89, "ciudad": "Nanda Parbat", "team": "Liga de las Sombras"},
+  {"id": 10, "nombre": "Captain Cold", "alias": "Leonard Snart", "nivel": 75, "ciudad": "Central City", "team": "Rogues"}
+] 
