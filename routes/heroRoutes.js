@@ -82,8 +82,14 @@ router.get('/page/:page', heroController.getByPage);
  *                 type: string
  *               alias:
  *                 type: string
- *               nivel:
+ *               poder:
  *                 type: integer
+ *                 description: Nivel de poder inicial (1-100)
+ *                 example: 1
+ *               defensa:
+ *                 type: integer
+ *                 description: Defensa, siempre 200 (ignorado si lo envía el usuario)
+ *                 example: 200
  *               ciudad:
  *                 type: string
  *               team:
@@ -117,8 +123,14 @@ router.post('/', heroController.create);
  *                 type: string
  *               alias:
  *                 type: string
- *               nivel:
+ *               poder:
  *                 type: integer
+ *                 description: Nivel de poder inicial (1-100)
+ *                 example: 1
+ *               defensa:
+ *                 type: integer
+ *                 description: Defensa, siempre 200 (ignorado si lo envía el usuario)
+ *                 example: 200
  *               ciudad:
  *                 type: string
  *               team:

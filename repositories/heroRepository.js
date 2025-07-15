@@ -25,5 +25,13 @@ module.exports = {
     saveHeroes(heroes);
     return hero;
   },
+  delete: (id) => {
+    const heroes = loadHeroes();
+    const idx = heroes.findIndex(h => Number(h.id) === Number(id));
+    if (idx === -1) return false;
+    heroes.splice(idx, 1);
+    saveHeroes(heroes);
+    return true;
+  },
   // Puedes agregar más métodos según lo necesites
 }; 

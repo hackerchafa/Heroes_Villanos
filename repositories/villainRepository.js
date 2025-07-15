@@ -22,5 +22,13 @@ module.exports = {
     saveVillains(villains);
     return villain;
   },
+  delete: (id) => {
+    const villains = loadVillains();
+    const idx = villains.findIndex(v => Number(v.id) === Number(id));
+    if (idx === -1) return false;
+    villains.splice(idx, 1);
+    saveVillains(villains);
+    return true;
+  },
   // Puedes agregar más métodos según lo necesites
 }; 
