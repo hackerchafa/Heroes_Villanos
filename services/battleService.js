@@ -1,26 +1,8 @@
-const HeroService = require('./heroService');
-const VillainService = require('./villainService');
+const Personaje = require('../models/personaje');
 
 class BattleService {
   constructor() {
     this.kofBattles = new Map(); // Almacenar batallas KoF
-    this.attackCombinations = [
-      // Básicos (fáciles)
-      { id: 1, nombre: 'Golpe A', combinacion: 'A', tipo: 'basico', descripcion: 'Golpe básico con A', createdAt: new Date().toISOString() },
-      { id: 2, nombre: 'Golpe B', combinacion: 'B', tipo: 'basico', descripcion: 'Golpe básico con B', createdAt: new Date().toISOString() },
-      { id: 3, nombre: 'Golpe X', combinacion: 'X', tipo: 'basico', descripcion: 'Golpe básico con X', createdAt: new Date().toISOString() },
-      { id: 4, nombre: 'Golpe Y', combinacion: 'Y', tipo: 'basico', descripcion: 'Golpe básico con Y', createdAt: new Date().toISOString() },
-      // Especiales (normales)
-      { id: 5, nombre: 'Combo XA', combinacion: 'XA', tipo: 'especial', descripcion: 'Combo especial XA', createdAt: new Date().toISOString() },
-      { id: 6, nombre: 'Combo BY', combinacion: 'BY', tipo: 'especial', descripcion: 'Combo especial BY', createdAt: new Date().toISOString() },
-      { id: 7, nombre: 'Combo ABX', combinacion: 'ABX', tipo: 'especial', descripcion: 'Combo especial ABX', createdAt: new Date().toISOString() },
-      { id: 8, nombre: 'Combo YXA', combinacion: 'YXA', tipo: 'especial', descripcion: 'Combo especial YXA', createdAt: new Date().toISOString() },
-      // Críticos (difíciles)
-      { id: 9, nombre: 'Crítico YAXB', combinacion: 'YAXB', tipo: 'critico', descripcion: 'Combo crítico YAXB', createdAt: new Date().toISOString() },
-      { id: 10, nombre: 'Crítico BXYAA', combinacion: 'BXYAA', tipo: 'critico', descripcion: 'Combo crítico BXYAA', createdAt: new Date().toISOString() },
-      { id: 11, nombre: 'Crítico XYBXA', combinacion: 'XYBXA', tipo: 'critico', descripcion: 'Combo crítico XYBXA', createdAt: new Date().toISOString() },
-      { id: 12, nombre: 'Crítico YXABY', combinacion: 'YXABY', tipo: 'critico', descripcion: 'Combo crítico YXABY', createdAt: new Date().toISOString() }
-    ];
     this.registeredTeams = null; // Guardar el último equipo registrado
     this.registeredOrder = null; // Guardar el último orden registrado
     this.battleId = null; // ID de la batalla actual
@@ -48,21 +30,7 @@ class BattleService {
     }
   }
 
-  // Agregar combinación de golpes personalizada
-  addAttackCombination(combination) {
-    const newCombination = {
-      id: this.attackCombinations.length + 1,
-      ...combination,
-      createdAt: new Date().toISOString()
-    };
-    this.attackCombinations.push(newCombination);
-    return newCombination;
-  }
-
-  // Obtener todas las combinaciones de golpes
-  getAttackCombinations() {
-    return this.attackCombinations;
-  }
+  // Eliminar addAttackCombination y getAttackCombinations
 
   // Obtener estadísticas de golpes de una batalla KoF
   getKofBattleStats(battleId) {
@@ -112,9 +80,9 @@ class BattleService {
   }
 
   // Simular batalla KoF 1vs1 con recuperación de salud
-  simulateKofBattle(heroId, villainId) {
-    const hero = HeroService.getById(heroId);
-    const villain = VillainService.getById(villainId);
+  async simulateKofBattle(heroId, villainId) {
+    const hero = await Personaje.findOne({ id: heroId });
+    const villain = await Personaje.findOne({ id: villainId });
     
     if (!hero || !villain) {
       return { error: 'Héroe o Villano no encontrado' };
@@ -128,7 +96,7 @@ class BattleService {
 
     // Simular hasta 5 rondas o hasta que uno muera
     while (roundNumber <= 5 && currentHero.vida > 0 && currentVillain.vida > 0) {
-      const roundResult = this.simulateKofRound(currentHero, currentVillain, roundNumber);
+      const roundResult = await this.simulateKofRound(currentHero, currentVillain, roundNumber);
       rounds.push(roundResult);
 
       // Si ambos sobreviven, recuperan 40% de salud
@@ -154,7 +122,7 @@ class BattleService {
   }
 
   // Simular una ronda KoF
-  simulateKofRound(hero, villain, roundNumber) {
+  async simulateKofRound(hero, villain, roundNumber) {
     const heroClone = { ...hero };
     const villainClone = { ...villain };
     const heroStats = { basico: 0, especial: 0, critico: 0 };
@@ -205,7 +173,7 @@ class BattleService {
   }
 
   // Simula un duelo 1vs1 y retorna estadísticas detalladas
-  simulateDuel(hero, villain) {
+  async simulateDuel(hero, villain) {
     // Clonar stats iniciales
     const heroClone = { id: hero.id, nombre: hero.nombre, alias: hero.alias, vida: 200, defensa: 200, poder: hero.poder, experiencia: hero.experiencia, golpeEspecial: hero.golpeEspecial, golpeCritico: hero.golpeCritico, golpeBasico: hero.golpeBasico };
     const villainClone = { id: villain.id, nombre: villain.nombre, alias: villain.alias, vida: 200, defensa: 200, poder: villain.poder, experiencia: villain.experiencia, golpeEspecial: villain.golpeEspecial, golpeCritico: villain.golpeCritico, golpeBasico: villain.golpeBasico };
@@ -219,7 +187,7 @@ class BattleService {
       // Héroe ataca
       const heroAttackType = this.chooseAttackType();
       let baseHeroDamage = this.calculateDamage(heroClone, heroAttackType);
-      const heroAttackResult = this.applyAttack(heroClone, villainClone, heroAttackType, baseHeroDamage, false);
+      const heroAttackResult = await this.applyAttack(heroClone, villainClone, heroAttackType, baseHeroDamage, false);
       heroStats[heroAttackType]++;
       totalDamage += heroAttackResult.dañoReal;
       movimientos++;
@@ -235,7 +203,7 @@ class BattleService {
       // Villano ataca
       const villainAttackType = this.chooseAttackType();
       let baseVillainDamage = this.calculateDamage(villainClone, villainAttackType);
-      const villainAttackResult = this.applyAttack(villainClone, heroClone, villainAttackType, baseVillainDamage, false);
+      const villainAttackResult = await this.applyAttack(villainClone, heroClone, villainAttackType, baseVillainDamage, false);
       villainStats[villainAttackType]++;
       totalDamage += villainAttackResult.dañoReal;
       movimientos++;
@@ -266,7 +234,7 @@ class BattleService {
   }
 
   // Simula una ronda del torneo y retorna estadísticas agregadas
-  simulateRound(heroes, villains) {
+  async simulateRound(heroes, villains) {
     const roundResults = [];
     const survivors = { heroes: [], villains: [] };
     let roundStats = { basico: 0, especial: 0, critico: 0, totalDamage: 0, movimientos: 0 };
@@ -274,7 +242,7 @@ class BattleService {
     for (let i = 0; i < Math.min(heroes.length, villains.length); i++) {
       const hero = heroes[i];
       const villain = villains[i];
-      const duelResult = this.simulateDuel(hero, villain);
+      const duelResult = await this.simulateDuel(hero, villain);
       roundResults.push(duelResult);
       // Sumar estadísticas de la ronda
       roundStats.basico += duelResult.stats.hero.basico + duelResult.stats.villain.basico;
@@ -303,7 +271,7 @@ class BattleService {
   }
 
   // Función principal para batalla por equipos tipo torneo
-  teamBattle(heroIds, villainIds) {
+  async teamBattle(heroIds, villainIds) {
     // Validar que se proporcionen exactamente 3 héroes y 3 villanos
     if (!heroIds || !villainIds || heroIds.length !== 3 || villainIds.length !== 3) {
       return { error: 'Se requieren exactamente 3 héroes y 3 villanos para la batalla por equipos.' };
@@ -322,8 +290,8 @@ class BattleService {
     }
 
     // Obtener los héroes y villanos
-    const heroes = heroIds.map(id => HeroService.getById(id)).filter(h => h);
-    const villains = villainIds.map(id => VillainService.getById(id)).filter(v => v);
+    const heroes = await Promise.all(heroIds.map(id => Personaje.findOne({ id: id })));
+    const villains = await Promise.all(villainIds.map(id => Personaje.findOne({ id: id })));
 
     // Validar que todos existan
     if (heroes.length !== 3 || villains.length !== 3) {
@@ -343,7 +311,7 @@ class BattleService {
         break;
       }
 
-      const roundResult = this.simulateRound(currentHeroes, currentVillains);
+      const roundResult = await this.simulateRound(currentHeroes, currentVillains);
       
       battleHistory.push({
         round,
@@ -430,10 +398,143 @@ class BattleService {
     return { message: 'Orden registrado correctamente', orden: this.registeredOrder, battleId: this.battleId };
   }
 
+  // Nuevo método para registrar un round
+  registerRound(roundNumber, Heroe, Villano) {
+    // Tipos válidos
+    const tiposValidos = ['basico', 'especial', 'critico'];
+    if (!this.battleId || !this.registeredOrder) {
+      return { error: 'Debes registrar equipos y orden antes de iniciar los rounds.' };
+    }
+    if (!this.roundState) this.roundState = {};
+    if (!this.roundState[this.battleId]) {
+      this.roundState[this.battleId] = {
+        heroes: this.registeredOrder.heroes.map(id => ({ id, defensa: 200, vida: 200 })),
+        villains: this.registeredOrder.villains.map(id => ({ id, defensa: 200, vida: 200 })),
+        currentRound: 1
+      };
+    }
+    const state = this.roundState[this.battleId];
+    if (roundNumber !== state.currentRound) {
+      return { error: `Debes registrar el round ${state.currentRound} antes de continuar.` };
+    }
+    const heroObj = state.heroes[roundNumber - 1];
+    const villainObj = state.villains[roundNumber - 1];
+    if (!heroObj || !villainObj) {
+      return { error: 'No hay personajes disponibles para este round.' };
+    }
+    // Buscar nombres reales
+    const heroName = this._getPersonajeNombre(heroObj.id, 'heroe');
+    const villainName = this._getPersonajeNombre(villainObj.id, 'villano');
+    // --- HEROE ATACA AL VILLANO ---
+    let mensajeHero = '';
+    let heroDamage = 0;
+    let tipoHero = Heroe;
+    let heroPoder = 1;
+    // Buscar personaje real por nombre
+    let heroDoc = null;
+    if (typeof heroName === 'string') {
+      heroDoc = require('../models/personaje');
+    }
+    if (!tiposValidos.includes(Heroe)) {
+      mensajeHero = `El Héroe *${heroName}* no realizó ningún golpe, por lo tanto, su daño es de 0`;
+      heroDamage = 0;
+    } else {
+      heroDamage = Heroe === 'basico' ? 20 : Heroe === 'especial' ? 40 : 60;
+      // Si existe el personaje, usar su poder
+      if (heroDoc && heroDoc.poder !== undefined) {
+        heroDamage = this._calcularDanioConPoder(heroDamage, heroDoc.poder);
+        // Actualizar experiencia y poder
+        this.aplicarExperiencia(heroDoc, 10);
+        heroDoc.save();
+      }
+    }
+    let dañoRestante = heroDamage;
+    let escudoAntes = villainObj.defensa;
+    if (heroDamage > 0) {
+      if (villainObj.defensa > 0) {
+        if (villainObj.defensa >= dañoRestante) {
+          villainObj.defensa -= dañoRestante;
+          dañoRestante = 0;
+        } else {
+          dañoRestante -= villainObj.defensa;
+          villainObj.defensa = 0;
+        }
+      }
+      if (dañoRestante > 0) {
+        villainObj.vida = Math.max(0, villainObj.vida - dañoRestante);
+      }
+      if (escudoAntes > 0 && villainObj.defensa === 0) {
+        mensajeHero = `En el round ${roundNumber}, el Héroe *${heroName}* golpeó con un golpe tipo *${Heroe}* al villano *${villainName}* pero el escudo fue destruido, por lo tanto, su vida baja a *${villainObj.vida}* puntos`;
+      } else {
+        mensajeHero = `En el round ${roundNumber}, el Héroe *${heroName}* golpeó con un golpe tipo *${Heroe}* al villano *${villainName}* y le hizo daño al escudo dejándolo con *${villainObj.defensa}*, por lo tanto, su vida sigue con ${villainObj.vida} puntos`;
+      }
+    }
+    // --- VILLANO ATACA AL HEROE ---
+    let mensajeVillain = '';
+    let villainDamage = 0;
+    let tipoVillain = Villano;
+    let villainPoder = 1;
+    let villainDoc = null;
+    if (typeof villainName === 'string') {
+      villainDoc = require('../models/personaje');
+    }
+    if (!tiposValidos.includes(Villano)) {
+      mensajeVillain = `El Villano *${villainName}* no realizó ningún golpe, por lo tanto, su daño es de 0`;
+      villainDamage = 0;
+    } else {
+      villainDamage = Villano === 'basico' ? 20 : Villano === 'especial' ? 40 : 60;
+      if (villainDoc && villainDoc.poder !== undefined) {
+        villainDamage = this._calcularDanioConPoder(villainDamage, villainDoc.poder);
+        this.aplicarExperiencia(villainDoc, 10);
+        villainDoc.save();
+      }
+    }
+    dañoRestante = villainDamage;
+    escudoAntes = heroObj.defensa;
+    if (villainDamage > 0) {
+      if (heroObj.defensa > 0) {
+        if (heroObj.defensa >= dañoRestante) {
+          heroObj.defensa -= dañoRestante;
+          dañoRestante = 0;
+        } else {
+          dañoRestante -= heroObj.defensa;
+          heroObj.defensa = 0;
+        }
+      }
+      if (dañoRestante > 0) {
+        heroObj.vida = Math.max(0, heroObj.vida - dañoRestante);
+      }
+      if (escudoAntes > 0 && heroObj.defensa === 0) {
+        mensajeVillain = `En el round ${roundNumber}, el Villano *${villainName}* golpeó con un golpe tipo *${Villano}* al héroe *${heroName}* pero el escudo fue destruido, por lo tanto, su vida baja a *${heroObj.vida}* puntos`;
+      } else {
+        mensajeVillain = `En el round ${roundNumber}, el Villano *${villainName}* golpeó con un golpe tipo *${Villano}* al héroe *${heroName}* y le hizo daño al escudo dejándolo con *${heroObj.defensa}*, por lo tanto, su vida sigue con ${heroObj.vida} puntos`;
+      }
+    }
+    // Avanzar round
+    state.currentRound++;
+    return {
+      hero: { ...heroObj },
+      villain: { ...villainObj },
+      mensajeHero,
+      mensajeVillain
+    };
+  }
+
+  // Helper para obtener el nombre real del personaje
+  _getPersonajeNombre(id, rol) {
+    // Buscar en la base de datos de personajes
+    const Personaje = require('./../models/personaje');
+    const personaje = Personaje.collection && Personaje.collection.findOne ? undefined : undefined;
+    // Si tienes acceso a la colección, puedes hacer una búsqueda real aquí
+    // Pero como esto es síncrono, solo devolveremos el id como string
+    // El controlador puede mejorarlo si tiene acceso a la colección y puede usar await
+    return id;
+  }
+
   // Mantener la función original para compatibilidad
-  battle(heroId, villainId) {
-    const hero = HeroService.getById(heroId);
-    const villain = VillainService.getById(villainId);
+  async battle(heroId, villainId) {
+    const hero = await Personaje.findOne({ id: heroId });
+    const villain = await Personaje.findOne({ id: villainId });
     if (!hero || !villain) {
       return { error: 'Héroe o Villano no encontrado' };
     }
@@ -483,9 +584,10 @@ class BattleService {
    * @param {boolean} esGanador - true si este personaje ganó el round
    * @returns {Object} - { dañoReal, defensaRestante, vidaRestante, expGanada }
    */
-  applyAttack(attacker, defender, tipoGolpe, baseDamage, esGanador = false) {
-    // Calcular daño total correctamente como porcentaje sobre el golpe base
-    let dañoReal = Math.round(baseDamage + (baseDamage * (attacker.poder * 0.1)));
+  async applyAttack(attacker, defender, tipoGolpe, baseDamage, esGanador = false) {
+    // Calcular bono de poder como porcentaje (nivel de poder * 0.1)
+    const bonoPoder = baseDamage * (attacker.poder * 0.1);
+    let dañoReal = Math.round(baseDamage + bonoPoder);
     let defensaRestante = defender.defensa;
     let vidaRestante = defender.vida;
     let expGanada = 0;
@@ -522,6 +624,20 @@ class BattleService {
       vidaRestante,
       expGanada
     };
+  }
+
+  // Nuevo método para calcular daño con nivel de poder
+  _calcularDanioConPoder(tipoGolpe, poder) {
+    const base = tipoGolpe;
+    const porcentaje = poder / 100;
+    const extra = base * porcentaje;
+    const decimal = extra - Math.floor(extra);
+    let extraFinal = Math.floor(extra);
+    if (decimal >= 0.6) {
+      extraFinal = Math.ceil(extra);
+    }
+    // Si decimal <= 0.5, se queda igual (ya es floor)
+    return base + extraFinal;
   }
 }
 

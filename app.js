@@ -1,11 +1,16 @@
+require('dotenv').config();
 const express = require('express');
 const app = express();
+const mongoose = require('./db');
+const cors = require('cors');
 
-const heroRoutes = require('./routes/heroRoutes');
-const villainRoutes = require('./routes/villainRoutes');
 const battleRoutes = require('./routes/battleRoutes');
+const authRoutes = require('./routes/authRoutes');
 const swaggerUi = require('swagger-ui-express');
 const swaggerJsdoc = require('swagger-jsdoc');
+const personajeRoutes = require('./routes/personajeRoutes');
+const verifyToken = require('./middleware/verifyToken');
+const authController = require('./controllers/authController');
 
 const swaggerOptions = {
   definition: {
@@ -18,18 +23,39 @@ const swaggerOptions = {
     servers: [
       { url: 'http://localhost:3001' }
     ],
+    components: {
+      securitySchemes: {
+        BearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT'
+        }
+      }
+    },
+    security: [
+      { BearerAuth: [] }
+    ]
   },
   apis: ['./routes/*.js'],
 };
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
+// Permitir cualquier origen para pruebas locales
+app.use(cors());
+
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use(express.json());
 
-app.use('/heroes', heroRoutes);
-app.use('/villains', villainRoutes);
+// Rutas públicas
+app.post('/auth/register', authController.register);
+app.post('/auth/login', authController.login);
+
+// Proteger el resto
+app.use(verifyToken);
+app.use('/auth', authRoutes); // Cualquier otro endpoint de /auth protegido
 app.use('/battles', battleRoutes);
+app.use('/personajes', personajeRoutes);
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {

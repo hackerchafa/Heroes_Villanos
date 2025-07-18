@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const battleController = require('../controllers/battleController');
+const verifyToken = require('../middleware/verifyToken');
 
 /**
  * @swagger
@@ -11,9 +12,9 @@ const battleController = require('../controllers/battleController');
 
 /**
  * @swagger
- * /battles:
+ * /battles/create:
  *   post:
- *     summary: Realizar una batalla entre un héroe y un villano
+ *     summary: Crear una nueva partida (battle)
  *     tags: [Battles]
  *     requestBody:
  *       required: true
@@ -22,17 +23,66 @@ const battleController = require('../controllers/battleController');
  *           schema:
  *             type: object
  *             properties:
- *               heroId:
- *                 type: integer
- *               villainId:
- *                 type: integer
+ *               username 1:
+ *                 type: string
+ *                 description: Tu nombre de usuario (obligatorio)
+ *               username 2:
+ *                 type: string
+ *                 description: Nombre de usuario del segundo jugador (opcional)
+ *           example:
+ *             username 1: "escribe_tu_username"
+ *             username 2: "otro_username"
+ *     responses:
+ *       201:
+ *         description: Partida creada exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 id:
+ *                   type: integer
+ *                 usuarios:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *       400:
+ *         description: Error de validación. Verifica que los campos estén completos y correctos.
+ *       404:
+ *         description: Algún usuario no existe o no está registrado. Verifica los nombres de usuario.
+ */
+router.post('/create', verifyToken, battleController.createBattle);
+/**
+ * @swagger
+ * /battles/pending:
+ *   get:
+ *     summary: Obtener las batallas en curso (no terminadas)
+ *     tags: [Battles]
  *     responses:
  *       200:
- *         description: Resultado de la batalla
- *       404:
- *         description: Héroe o villano no encontrado
+ *         description: Devuelve un array con las batallas en curso (battleId, usuarios, currentRound)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 pendientes:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       battleId:
+ *                         type: string
+ *                       usuarios:
+ *                         type: array
+ *                         items:
+ *                           type: string
+ *                       currentRound:
+ *                         type: number
  */
-router.post('/', battleController.battle);
+router.get('/pending', verifyToken, battleController.getPendingBattle);
 
 /**
  * @swagger
@@ -47,44 +97,40 @@ router.post('/', battleController.battle);
  *           schema:
  *             type: object
  *             properties:
- *               heroe1:
+ *               personaje 1:
  *                 type: integer
- *                 description: ID del primer héroe
- *               heroe2:
+ *               personaje 2:
  *                 type: integer
- *                 description: ID del segundo héroe
- *               heroe3:
+ *               personaje 3:
  *                 type: integer
- *                 description: ID del tercer héroe
- *               villano1:
+ *               personaje 4:
  *                 type: integer
- *                 description: ID del primer villano
- *               villano2:
+ *               personaje 5:
  *                 type: integer
- *                 description: ID del segundo villano
- *               villano3:
+ *               personaje 6:
  *                 type: integer
- *                 description: ID del tercer villano
- *             required:
- *               - heroe1
- *               - heroe2
- *               - heroe3
- *               - villano1
- *               - villano2
- *               - villano3
  *     responses:
  *       200:
- *         description: Equipos registrados correctamente
- *       400:
- *         description: Datos inválidos
+ *         description: Equipos registrados
  */
-router.post('/team', battleController.teamBattle);
+router.post('/team', battleController.registerTeams);
+/**
+ * @swagger
+ * /battles/selected-ids:
+ *   get:
+ *     summary: Obtener los personajes seleccionados en el último equipo registrado
+ *     tags: [Battles]
+ *     responses:
+ *       200:
+ *         description: Lista de personajes seleccionados (id, nombre y rol)
+ */
+router.get('/selected-ids', battleController.getSelectedIds);
 
 /**
  * @swagger
  * /battles/orden:
  *   post:
- *     summary: Registrar el orden de los personajes para el enfrentamiento (debe haber equipos registrados)
+ *     summary: Registrar el orden de los personajes y el rol de cada usuario (heroe o villano)
  *     tags: [Battles]
  *     requestBody:
  *       required: true
@@ -93,39 +139,40 @@ router.post('/team', battleController.teamBattle);
  *           schema:
  *             type: object
  *             properties:
- *               battleId:
+ *               Hector:
  *                 type: string
- *                 description: ID de la batalla (definido por el usuario)
- *                 example: ""
- *               heroes:
+ *                 description: Rol del usuario Hector ("heroe" o "villano")
+ *               personajes1:
  *                 type: array
  *                 items:
  *                   type: integer
- *                 description: IDs de los héroes en el orden deseado
- *                 example: [0, 0, 0]
- *               villains:
+ *                 description: IDs de los personajes del usuario 1 en orden
+ *               Juan:
+ *                 type: string
+ *                 description: Rol del usuario Juan ("heroe" o "villano")
+ *               personajes2:
  *                 type: array
  *                 items:
  *                   type: integer
- *                 description: IDs de los villanos en el orden deseado
- *                 example: [0, 0, 0]
- *             required:
- *               - battleId
- *               - heroes
- *               - villains
+ *                 description: IDs de los personajes del usuario 2 en orden
+ *           example:
+ *             Hector: "rol"
+ *             personajes1: [0, 0, 0]
+ *             Juan: "rol"
+ *             personajes2: [0, 0, 0]
  *     responses:
  *       200:
  *         description: Orden registrado correctamente
  *       400:
- *         description: Error de validación (sin equipos registrados, campos vacíos o IDs no coinciden)
+ *         description: Error de validación. Verifica que los roles y el orden sean correctos. El rol debe ser "heroe" o "villano", no puede haber dos iguales ni campos vacíos.
  */
-router.post('/orden', battleController.registerOrder);
+router.post('/orden', require('../controllers/battleController').registerOrder);
 
 /**
  * @swagger
- * /battles/combinations:
+ * /battles/round1:
  *   post:
- *     summary: Registrar combinaciones de héroe y villano para el turno actual de la batalla
+ *     summary: Registrar el resultado del round 1
  *     tags: [Battles]
  *     requestBody:
  *       required: true
@@ -133,40 +180,24 @@ router.post('/orden', battleController.registerOrder);
  *         application/json:
  *           schema:
  *             type: object
- *             properties:
- *               battleId:
- *                 type: string
- *                 description: ID de la batalla
- *                 example: ""
- *               CombinacionHero:
- *                 type: string
- *                 description: Combinación del héroe (solo letras Y, X, A, B, de 1 a 5 caracteres)
- *                 example: ""
- *               CombinacionVillain:
- *                 type: string
- *                 description: Combinación del villano (solo letras Y, X, A, B, de 1 a 5 caracteres)
- *                 example: ""
- *             required:
- *               - battleId
- *               - CombinacionHero
- *               - CombinacionVillain
+ *             additionalProperties:
+ *               type: string
+ *               description: El tipo de golpe ("basico", "especial" o "critico")
+ *           example:
+ *             Hector: "basico"
+ *             Juan: "critico"
  *     responses:
  *       200:
- *         description: Movimiento registrado correctamente
+ *         description: Movimiento del Round 1 registrado correctamente
  *       400:
- *         description: Datos inválidos
+ *         description: Error de validación. El tipo de golpe debe ser "basico", "especial" o "critico" y los nombres deben coincidir con los usuarios de la batalla.
  */
-router.post('/combinations', battleController.addAttackCombination);
-
-// Eliminar el endpoint flexible de round
-// router.post('/combinations/round/:roundNumber', battleController.addRoundCombination);
-
-// Agregar endpoints fijos para cada round
+router.post('/round1', battleController.registerRound1);
 /**
  * @swagger
- * /battles/combinations2:
+ * /battles/round2:
  *   post:
- *     summary: Registrar combinaciones de héroe y villano para el segundo round de la batalla por equipos
+ *     summary: Registrar el resultado del round 2
  *     tags: [Battles]
  *     requestBody:
  *       required: true
@@ -174,36 +205,24 @@ router.post('/combinations', battleController.addAttackCombination);
  *         application/json:
  *           schema:
  *             type: object
- *             properties:
- *               battleId:
- *                 type: string
- *                 description: ID de la batalla
- *                 example: ""
- *               CombinacionHero:
- *                 type: string
- *                 description: Combinación del héroe (solo letras Y, X, A, B, de 1 a 5 caracteres)
- *                 example: ""
- *               CombinacionVillain:
- *                 type: string
- *                 description: Combinación del villano (solo letras Y, X, A, B, de 1 a 5 caracteres)
- *                 example: ""
- *             required:
- *               - battleId
- *               - CombinacionHero
- *               - CombinacionVillain
+ *             additionalProperties:
+ *               type: string
+ *               description: El tipo de golpe ("basico", "especial" o "critico")
+ *           example:
+ *             Hector: "especial"
+ *             Juan: "basico"
  *     responses:
  *       200:
- *         description: Movimientos registrados correctamente, muestra los nombres y resultados del round
+ *         description: Movimiento del Round 2 registrado correctamente
  *       400:
- *         description: Datos inválidos o batalla terminada
+ *         description: Error de validación. El tipo de golpe debe ser "basico", "especial" o "critico" y los nombres deben coincidir con los usuarios de la batalla.
  */
-router.post('/combinations2', battleController.addCombination2);
-
+router.post('/round2', battleController.registerRound2);
 /**
  * @swagger
- * /battles/combinations3:
+ * /battles/round3:
  *   post:
- *     summary: Registrar combinaciones de héroe y villano para el tercer round de la batalla por equipos
+ *     summary: Registrar el resultado del round 3
  *     tags: [Battles]
  *     requestBody:
  *       required: true
@@ -211,87 +230,29 @@ router.post('/combinations2', battleController.addCombination2);
  *         application/json:
  *           schema:
  *             type: object
- *             properties:
- *               battleId:
- *                 type: string
- *                 description: ID de la batalla
- *                 example: ""
- *               CombinacionHero:
- *                 type: string
- *                 description: Combinación del héroe (solo letras Y, X, A, B, de 1 a 5 caracteres)
- *                 example: ""
- *               CombinacionVillain:
- *                 type: string
- *                 description: Combinación del villano (solo letras Y, X, A, B, de 1 a 5 caracteres)
- *                 example: ""
- *             required:
- *               - battleId
- *               - CombinacionHero
- *               - CombinacionVillain
+ *             additionalProperties:
+ *               type: string
+ *               description: El tipo de golpe ("basico", "especial" o "critico")
+ *           example:
+ *             Hector: "critico"
+ *             Juan: "especial"
  *     responses:
  *       200:
- *         description: Movimientos registrados correctamente, muestra los nombres y resultados del round
+ *         description: Movimiento del Round 3 registrado correctamente
  *       400:
- *         description: Datos inválidos o batalla terminada
+ *         description: Error de validación. El tipo de golpe debe ser "basico", "especial" o "critico" y los nombres deben coincidir con los usuarios de la batalla.
  */
-router.post('/combinations3', battleController.addCombination3);
+router.post('/round3', battleController.registerRound3);
 
 /**
  * @swagger
- * /battles/combinations:
- *   get:
- *     summary: Obtener todas las combinaciones de golpes
- *     tags: [Battles]
- *     responses:
- *       200:
- *         description: Lista de combinaciones de golpes
- */
-router.get('/combinations', battleController.getAttackCombinations);
-
-/**
- * @swagger
- * /battles/combinations/{battleId}/movimientos:
- *   get:
- *     summary: Obtener el historial de movimientos de la batalla
- *     tags: [Battles]
- *     parameters:
- *       - in: path
- *         name: battleId
- *         required: true
- *         schema:
- *           type: string
- *         description: ID de la batalla
- *     responses:
- *       200:
- *         description: Historial de movimientos de la batalla
- *       404:
- *         description: Batalla no encontrada
- */
-router.get('/combinations/:battleId/movimientos', battleController.getBattleMovements);
-
-/**
- * @swagger
- * /battles/team/available:
- *   get:
- *     summary: Obtener los equipos y el orden registrados actualmente
- *     tags: [Battles]
- *     responses:
- *       200:
- *         description: Equipos y orden registrados
- *       404:
- *         description: No hay equipos registrados actualmente
- */
-router.get('/team/available', battleController.getAvailableTeamBattles);
-
-/**
- * @swagger
- * /battles/wins/{battleId}:
+ * /battles/wins/{id}:
  *   get:
  *     summary: Obtener los resultados finales de cada ronda de la batalla (solo cuando las 3 rondas hayan terminado)
  *     tags: [Battles]
  *     parameters:
  *       - in: path
- *         name: battleId
+ *         name: id
  *         required: true
  *         schema:
  *           type: string
@@ -332,6 +293,6 @@ router.get('/team/available', battleController.getAvailableTeamBattles);
  *       404:
  *         description: No hay datos de batalla para este battleId
  */
-router.get('/wins/:battleId', battleController.getWins);
+router.get('/battles/wins/:id', battleController.getBattleWinsById);
 
 module.exports = router; 
