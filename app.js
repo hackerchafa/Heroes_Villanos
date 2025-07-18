@@ -21,6 +21,7 @@ const swaggerOptions = {
       description: 'Documentación de la API de Héroes, Villanos y Batallas',
     },
     servers: [
+      { url: 'https://heroes-villanos.onrender.com' },
       { url: 'http://localhost:3001' }
     ],
     components: {
