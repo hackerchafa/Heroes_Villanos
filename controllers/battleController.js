@@ -586,45 +586,50 @@ const getBattleWinsById = async (req, res) => {
 module.exports.getBattleWinsById = getBattleWinsById;
 
 const createBattle = async (req, res) => {
-  const { "username 1": usuario1, "username 2": usuario2 } = req.body;
-  const owner = req.user.username;
-  if (!usuario1 || typeof usuario1 !== 'string' || usuario1.trim() === '' || usuario1.trim().toLowerCase() === 'null') {
-    return res.status(400).json({ error: 'Debes ingresar tu nombre de usuario en "username 1". No puede estar vacío ni ser "null".' });
-  }
-  let usuarios = [usuario1];
-  if (
-    usuario2 &&
-    typeof usuario2 === 'string' &&
-    usuario2.trim() !== '' &&
-    usuario2.trim().toLowerCase() !== 'null'
-  ) {
-    usuarios.push(usuario2);
-  }
-  // Validar que los usuarios existan la cantidad de veces que aparecen en el array
-  const userCounts = {};
-  for (const username of usuarios) {
-    userCounts[username] = (userCounts[username] || 0) + 1;
-  }
-  for (const [username, count] of Object.entries(userCounts)) {
-    const usersFound = await User.find({ username });
-    if (usersFound.length < count) {
-      return res.status(404).json({ error: `El usuario "${username}" no existe o no está registrado la cantidad de veces requerida (${count}). Verifica que hayas escrito correctamente tu nombre de usuario.` });
+  try {
+    const { "username 1": usuario1, "username 2": usuario2 } = req.body;
+    const owner = req.user.username;
+    if (!usuario1 || typeof usuario1 !== 'string' || usuario1.trim() === '' || usuario1.trim().toLowerCase() === 'null') {
+      return res.status(400).json({ error: 'Debes ingresar tu nombre de usuario en "username 1". No puede estar vacío ni ser "null".' });
     }
+    let usuarios = [usuario1];
+    if (
+      usuario2 &&
+      typeof usuario2 === 'string' &&
+      usuario2.trim() !== '' &&
+      usuario2.trim().toLowerCase() !== 'null'
+    ) {
+      usuarios.push(usuario2);
+    }
+    // Validar que los usuarios existan la cantidad de veces que aparecen en el array
+    const userCounts = {};
+    for (const username of usuarios) {
+      userCounts[username] = (userCounts[username] || 0) + 1;
+    }
+    for (const [username, count] of Object.entries(userCounts)) {
+      const usersFound = await User.find({ username });
+      if (usersFound.length < count) {
+        return res.status(404).json({ error: `El usuario "${username}" no existe o no está registrado la cantidad de veces requerida (${count}). Verifica que hayas escrito correctamente tu nombre de usuario.` });
+      }
+    }
+    // Verificar si el usuario ya tiene una partida activa
+    const existingBattle = await Battle.findOne({ owner });
+    if (existingBattle) {
+      return res.status(400).json({ error: 'Ya tienes una partida activa. Debes finalizar o eliminar la partida actual antes de crear una nueva.' });
+    }
+    // Crear la batalla
+    const battle = new Battle({
+      owner,
+      usuarios,
+      rounds: {},
+      currentRound: 1
+    });
+    await battle.save();
+    res.status(201).json({ message: '¡La partida ha sido creada exitosamente! Guarda el ID de la partida para futuras acciones.', id: battle.id, usuarios });
+  } catch (err) {
+    console.error('[createBattle] Error interno:', err);
+    res.status(500).json({ error: 'Error interno al crear la partida. Intenta de nuevo o revisa los datos enviados.' });
   }
-  // Verificar si el usuario ya tiene una partida activa
-  const existingBattle = await Battle.findOne({ owner });
-  if (existingBattle) {
-    return res.status(400).json({ error: 'Ya tienes una partida activa. Debes finalizar o eliminar la partida actual antes de crear una nueva.' });
-  }
-  // Crear la batalla
-  const battle = new Battle({
-    owner,
-    usuarios,
-    rounds: {},
-    currentRound: 1
-  });
-  await battle.save();
-  res.status(201).json({ message: '¡La partida ha sido creada exitosamente! Guarda el ID de la partida para futuras acciones.', id: battle.id, usuarios });
 };
 
 const getPendingBattle = async (req, res) => {
