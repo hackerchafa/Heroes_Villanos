@@ -5,7 +5,7 @@ function verifyToken(req, res, next) {
   if (!token) return res.status(401).json({ error: 'Token requerido.' });
 
   try {
-    const decoded = jwt.verify(token.replace('Bearer ', ''), 'SECRET_KEY');
+    const decoded = jwt.verify(token.replace('Bearer ', ''), process.env.SECRET_KEY);
     req.user = decoded;
     next();
   } catch (err) {

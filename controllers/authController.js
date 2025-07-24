@@ -41,7 +41,7 @@ exports.login = async (req, res) => {
     const isMatch = await user.comparePassword(password);
     if (!isMatch) return res.status(400).json({ error: 'Credenciales inválidas. Verifica tu email y contraseña.' });
 
-    const token = jwt.sign({ id: user.id, username: user.username, email: user.email }, 'SECRET_KEY', { expiresIn: '2h' });
+    const token = jwt.sign({ id: user.id, username: user.username, email: user.email }, process.env.SECRET_KEY, { expiresIn: '2h' });
     res.json({ message: 'Login exitoso. Copia tu token y pégalo en Authorize para usar la API.', token });
   } catch (err) {
     res.status(400).json({ error: 'Ocurrió un error al iniciar sesión. Intenta nuevamente.' });
