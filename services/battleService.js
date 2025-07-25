@@ -6,6 +6,8 @@ class BattleService {
     this.registeredTeams = null; // Guardar el último equipo registrado
     this.registeredOrder = null; // Guardar el último orden registrado
     this.battleId = null; // ID de la batalla actual
+    this.activeBattles = new Map(); // Almacenar batallas en curso con su owner y estado
+    this.completedBattles = new Map(); // Almacenar batallas completadas
   }
 
   // Función para generar un número aleatorio entre min y max
@@ -196,8 +198,8 @@ class BattleService {
         defensor: villainClone.nombre,
         tipoGolpe: heroAttackType,
         dano: heroAttackResult.dañoReal,
-        defensaRestante: villainClone.defensa,
-        vidaRestante: villainClone.vida
+        defensaRestante: Math.max(0, villainClone.defensa),
+        vidaRestante: Math.max(0, villainClone.vida)
       });
       if (villainClone.vida <= 0) break;
       // Villano ataca
@@ -212,8 +214,8 @@ class BattleService {
         defensor: heroClone.nombre,
         tipoGolpe: villainAttackType,
         dano: villainAttackResult.dañoReal,
-        defensaRestante: heroClone.defensa,
-        vidaRestante: heroClone.vida
+        defensaRestante: Math.max(0, heroClone.defensa),
+        vidaRestante: Math.max(0, heroClone.vida)
       });
     }
     // Determinar ganador
@@ -239,6 +241,8 @@ class BattleService {
     const survivors = { heroes: [], villains: [] };
     let roundStats = { basico: 0, especial: 0, critico: 0, totalDamage: 0, movimientos: 0 };
 
+    let nextHeroes = [];
+    let nextVillains = [];
     for (let i = 0; i < Math.min(heroes.length, villains.length); i++) {
       const hero = heroes[i];
       const villain = villains[i];
@@ -250,17 +254,31 @@ class BattleService {
       roundStats.critico += duelResult.stats.hero.critico + duelResult.stats.villain.critico;
       roundStats.totalDamage += duelResult.stats.totalDamage;
       roundStats.movimientos += duelResult.stats.movimientos;
-      // Agregar sobrevivientes con 50% de vida
-      if (duelResult.winner === 'hero') {
+      // Lógica de sobrevivientes:
+      // Si ambos mueren, avanzan los siguientes personajes (no se agrega ninguno)
+      if (duelResult.hero.vida > 0 && duelResult.villain.vida <= 0) {
+        // Solo el héroe sobrevive
         const survivor = { ...duelResult.hero };
-        survivor.vida = Math.floor(survivor.vida * 0.5);
-        survivors.heroes.push(survivor);
-      } else {
+        survivor.vida = Math.max(0, Math.floor(survivor.vida * 0.5));
+        nextHeroes.push(survivor);
+      } else if (duelResult.villain.vida > 0 && duelResult.hero.vida <= 0) {
+        // Solo el villano sobrevive
         const survivor = { ...duelResult.villain };
-        survivor.vida = Math.floor(survivor.vida * 0.5);
-        survivors.villains.push(survivor);
+        survivor.vida = Math.max(0, Math.floor(survivor.vida * 0.5));
+        nextVillains.push(survivor);
+      } else if (duelResult.hero.vida > 0 && duelResult.villain.vida > 0) {
+        // Ambos sobreviven, ambos avanzan
+        const survivorHero = { ...duelResult.hero };
+        survivorHero.vida = Math.max(0, Math.floor(survivorHero.vida * 0.5));
+        nextHeroes.push(survivorHero);
+        const survivorVillain = { ...duelResult.villain };
+        survivorVillain.vida = Math.max(0, Math.floor(survivorVillain.vida * 0.5));
+        nextVillains.push(survivorVillain);
       }
+      // Si ambos mueren, no se agrega ninguno, avanzan los siguientes en el orden
     }
+    survivors.heroes = nextHeroes;
+    survivors.villains = nextVillains;
     return {
       roundResults,
       survivors,
@@ -399,19 +417,36 @@ class BattleService {
   }
 
   // Nuevo método para registrar un round
-  registerRound(roundNumber, Heroe, Villano) {
+  registerRound(roundNumber, Heroe, Villano, owner) {
     // Tipos válidos
     const tiposValidos = ['basico', 'especial', 'critico'];
+    
     if (!this.battleId || !this.registeredOrder) {
       return { error: 'Debes registrar equipos y orden antes de iniciar los rounds.' };
     }
+
+    // Verificar si el owner ya tiene una batalla activa
+    const ownerActiveBattle = Array.from(this.activeBattles.values()).find(battle => battle.owner === owner);
+    if (ownerActiveBattle && ownerActiveBattle.battleId !== this.battleId && ownerActiveBattle.currentRound <= 3) {
+      return { error: 'Ya tienes una batalla en curso. Debes completar las 3 rondas antes de iniciar una nueva.' };
+    }
+
     if (!this.roundState) this.roundState = {};
     if (!this.roundState[this.battleId]) {
       this.roundState[this.battleId] = {
         heroes: this.registeredOrder.heroes.map(id => ({ id, defensa: 200, vida: 200 })),
         villains: this.registeredOrder.villains.map(id => ({ id, defensa: 200, vida: 200 })),
-        currentRound: 1
+        currentRound: 1,
+        owner: owner,
+        roundResults: []
       };
+      // Registrar batalla activa
+      this.activeBattles.set(this.battleId, {
+        battleId: this.battleId,
+        owner: owner,
+        currentRound: 1,
+        startTime: new Date()
+      });
     }
     const state = this.roundState[this.battleId];
     if (roundNumber !== state.currentRound) {
@@ -464,9 +499,9 @@ class BattleService {
         villainObj.vida = Math.max(0, villainObj.vida - dañoRestante);
       }
       if (escudoAntes > 0 && villainObj.defensa === 0) {
-        mensajeHero = `En el round ${roundNumber}, el Héroe *${heroName}* golpeó con un golpe tipo *${Heroe}* al villano *${villainName}* pero el escudo fue destruido, por lo tanto, su vida baja a *${villainObj.vida}* puntos`;
+        mensajeHero = `En el round ${roundNumber}, el Héroe *${heroName}* golpeó con un golpe tipo *${Heroe}* al villano *${villainName}* pero el escudo fue destruido, por lo tanto, su vida baja a *${Math.max(0, villainObj.vida)}* puntos`;
       } else {
-        mensajeHero = `En el round ${roundNumber}, el Héroe *${heroName}* golpeó con un golpe tipo *${Heroe}* al villano *${villainName}* y le hizo daño al escudo dejándolo con *${villainObj.defensa}*, por lo tanto, su vida sigue con ${villainObj.vida} puntos`;
+        mensajeHero = `En el round ${roundNumber}, el Héroe *${heroName}* golpeó con un golpe tipo *${Heroe}* al villano *${villainName}* y le hizo daño al escudo dejándolo con *${Math.max(0, villainObj.defensa)}*, por lo tanto, su vida sigue con ${Math.max(0, villainObj.vida)} puntos`;
       }
     }
     // --- VILLANO ATACA AL HEROE ---
@@ -505,18 +540,49 @@ class BattleService {
         heroObj.vida = Math.max(0, heroObj.vida - dañoRestante);
       }
       if (escudoAntes > 0 && heroObj.defensa === 0) {
-        mensajeVillain = `En el round ${roundNumber}, el Villano *${villainName}* golpeó con un golpe tipo *${Villano}* al héroe *${heroName}* pero el escudo fue destruido, por lo tanto, su vida baja a *${heroObj.vida}* puntos`;
+        mensajeVillain = `En el round ${roundNumber}, el Villano *${villainName}* golpeó con un golpe tipo *${Villano}* al héroe *${heroName}* pero el escudo fue destruido, por lo tanto, su vida baja a *${Math.max(0, heroObj.vida)}* puntos`;
       } else {
-        mensajeVillain = `En el round ${roundNumber}, el Villano *${villainName}* golpeó con un golpe tipo *${Villano}* al héroe *${heroName}* y le hizo daño al escudo dejándolo con *${heroObj.defensa}*, por lo tanto, su vida sigue con ${heroObj.vida} puntos`;
+        mensajeVillain = `En el round ${roundNumber}, el Villano *${villainName}* golpeó con un golpe tipo *${Villano}* al héroe *${heroName}* y le hizo daño al escudo dejándolo con *${Math.max(0, heroObj.defensa)}*, por lo tanto, su vida sigue con ${Math.max(0, heroObj.vida)} puntos`;
       }
     }
+    // Guardar resultado de la ronda
+    const roundResult = {
+      roundNumber,
+      hero: { ...heroObj },
+      villain: { ...villainObj },
+      mensajeHero,
+      mensajeVillain,
+      timestamp: new Date()
+    };
+    state.roundResults.push(roundResult);
+
     // Avanzar round
     state.currentRound++;
+    
+    // Si se completaron las 3 rondas, mover a batallas completadas
+    if (state.currentRound > 3) {
+      const battleSummary = {
+        battleId: this.battleId,
+        owner: state.owner,
+        startTime: this.activeBattles.get(this.battleId).startTime,
+        endTime: new Date(),
+        rounds: state.roundResults,
+        finalState: {
+          heroes: state.heroes,
+          villains: state.villains
+        }
+      };
+      this.completedBattles.set(this.battleId, battleSummary);
+      this.activeBattles.delete(this.battleId);
+    }
+
     return {
       hero: { ...heroObj },
       villain: { ...villainObj },
       mensajeHero,
-      mensajeVillain
+      mensajeVillain,
+      roundNumber,
+      isComplete: state.currentRound > 3
     };
   }
 
@@ -638,6 +704,35 @@ class BattleService {
     }
     // Si decimal <= 0.5, se queda igual (ya es floor)
     return base + extraFinal;
+  }
+
+  // Obtener resultados de batallas
+  getBattleResults(battleId = null) {
+    if (battleId) {
+      // Si la batalla aún está activa y no ha completado 3 rondas
+      const activeBattle = this.activeBattles.get(battleId);
+      if (activeBattle && this.roundState[battleId]) {
+        const state = this.roundState[battleId];
+        if (state.currentRound <= 3) {
+          return { 
+            error: 'La batalla aún no ha completado las 3 rondas requeridas.',
+            currentRound: state.currentRound - 1,
+            roundsCompleted: state.roundResults.length
+          };
+        }
+      }
+
+      // Buscar en batallas completadas
+      const completedBattle = this.completedBattles.get(battleId);
+      if (completedBattle) {
+        return completedBattle;
+      }
+
+      return { error: 'Batalla no encontrada' };
+    }
+
+    // Retornar todas las batallas completadas
+    return Array.from(this.completedBattles.values());
   }
 }
 
